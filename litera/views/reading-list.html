@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reading List Saya</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/extra.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="/" class="back-btn">← Cari Buku</a>
+    </nav>
+
+    <h1>Reading List Saya</h1>
+    <p class="subtitle">Simpan buku yang ingin kamu baca, lacak progresnya, dan tulis catatan pribadi.</p>
+
+    <div class="toolbar">
+      <label for="statusFilter">Tampilkan</label>
+      <select id="statusFilter">
+        <option value="">Semua status</option>
+        <option value="want">Ingin dibaca</option>
+        <option value="reading">Sedang dibaca</option>
+        <option value="done">Selesai</option>
+      </select>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div id="readingList" class="book-list"></div>
+  </div>
+
+  <dialog id="editDialog" class="edit-dialog">
+    <form id="editForm" method="dialog">
+      <h2 id="editTitle">Edit buku</h2>
+
+      <label for="editStatus">Status baca</label>
+      <select id="editStatus" name="status">
+        <option value="want">Ingin dibaca</option>
+        <option value="reading">Sedang dibaca</option>
+        <option value="done">Selesai</option>
+      </select>
+
+      <label for="editRating">Rating</label>
+      <select id="editRating" name="rating">
+        <option value="0">Belum dinilai</option>
+        <option value="1">1 bintang</option>
+        <option value="2">2 bintang</option>
+        <option value="3">3 bintang</option>
+        <option value="4">4 bintang</option>
+        <option value="5">5 bintang</option>
+      </select>
+
+      <label for="editNotes">Catatan pribadi</label>
+      <textarea id="editNotes" name="notes" rows="5" maxlength="1000" placeholder="Tulis kesan, kutipan, atau rencana bacamu..."></textarea>
+
+      <div class="dialog-actions">
+        <button type="button" id="cancelEdit" class="btn-secondary">Batal</button>
+        <button type="submit" class="btn-primary">Simpan perubahan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/common.js"></script>
+  <script src="/reading-list.js"></script>
+</body>
+</html>

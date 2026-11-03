@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detail Buku</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/extra.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="/" class="back-btn">← Kembali</a>
+      <a href="/reading-list" class="nav-link">Reading List Saya</a>
+    </nav>
+    <div id="detailContainer"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/common.js"></script>
+  <script>
+    async function loadBookDetail() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const detailContainer = document.getElementById('detailContainer');
+
+      if (!id) {
+        detailContainer.innerHTML = '<p>ID buku tidak ditemukan.</p>';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/book/${id}`);
+        const book = await response.json();
+
+        detailContainer.innerHTML = `
+          <div class="detail-card">
+            <img src="${book.thumbnail || 'https://via.placeholder.com/150'}" alt="${book.title}" />
+            <div class="detail-info">
+              <h1>${book.title}</h1>
+              <p><strong>Penulis:</strong> ${book.authors.join(', ')}</p>
+              <p><strong>Penerbit:</strong> ${book.publisher}</p>
+              <p><strong>Tahun Terbit:</strong> ${book.publishedDate}</p>
+              <p><strong>Kategori:</strong> ${book.categories.join(', ')}</p>
+              <p><strong>Jumlah Halaman:</strong> ${book.pageCount}</p>
+              <p><strong>Deskripsi:</strong></p>
+              <div class="description">${book.description}</div>
+              <div class="card-actions">
+                <a href="${book.previewLink}" target="_blank" class="preview-btn">Lihat Preview</a>
+                <button type="button" id="addBtn" class="add-btn">+ Tambah ke Reading List</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const addBtn = document.getElementById('addBtn');
+        addBtn.addEventListener('click', () => addToReadingList(book, addBtn));
+      } catch (error) {
+        detailContainer.innerHTML = '<p>Gagal memuat detail buku.</p>';
+      }
+    }
+
+    loadBookDetail();
+  </script>
+</body>
+</html>

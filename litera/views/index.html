@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pencarian Buku</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/extra.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="/reading-list" class="nav-link">Reading List Saya</a>
+    </nav>
+
+    <h1>LITERA</h1>
+    <p class="subtitle">Cari informasi buku untuk menambah literasi dan wawasan kamu 
+        dengan cepat menggunakan Google Books API</p>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Masukkan judul buku..." />
+      <button id="searchBtn">Cari Buku</button>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div id="bookList" class="book-list"></div>
+
+    <div class="footer">
+      <p>Tugas Integrasi Aplikasi Enterprise - Ilham Arrifan</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/common.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
