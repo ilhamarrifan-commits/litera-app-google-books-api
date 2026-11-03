@@ -1,64 +1,96 @@
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
 
-// Di lokal: ./data/litera.db
-// Di Azure : set App Setting DB_PATH=/home/data/litera.db (folder /home bersifat persisten)
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'litera.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+// Menentukan lokasi penyimpanan file JSON (di lokal atau di Azure /home)
+const dataDir = process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : path.join(__dirname, 'data');
+const jsonPath = process.env.DB_PATH ? process.env.DB_PATH.replace('.db', '.json') : path.join(dataDir, 'litera.json');
 
-const db = new Database(dbPath);
-// Catatan: sengaja tidak memakai journal_mode WAL karena /home di Azure
-// adalah network storage yang kurang cocok dengan WAL.
+fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS reading_list (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    google_id  TEXT    NOT NULL UNIQUE,
-    title      TEXT    NOT NULL,
-    authors    TEXT    NOT NULL DEFAULT '',
-    thumbnail  TEXT    NOT NULL DEFAULT '',
-    status     TEXT    NOT NULL DEFAULT 'want'
-               CHECK (status IN ('want', 'reading', 'done')),
-    rating     INTEGER NOT NULL DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
-    notes      TEXT    NOT NULL DEFAULT '',
-    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
-  )
-`);
+function readData() {
+  if (!fs.existsSync(jsonPath)) {
+    return [];
+  }
+  try {
+    const fileData = fs.readFileSync(jsonPath, 'utf8');
+    return JSON.parse(fileData);
+  } catch (e) {
+    return [];
+  }
+}
 
-const stmt = {
-  all: db.prepare('SELECT * FROM reading_list ORDER BY created_at DESC, id DESC'),
-  byStatus: db.prepare('SELECT * FROM reading_list WHERE status = ? ORDER BY created_at DESC, id DESC'),
-  get: db.prepare('SELECT * FROM reading_list WHERE id = ?'),
-  insert: db.prepare(`
-    INSERT INTO reading_list (google_id, title, authors, thumbnail, status)
-    VALUES (@google_id, @title, @authors, @thumbnail, @status)
-  `),
-  update: db.prepare(`
-    UPDATE reading_list
-    SET status = @status, rating = @rating, notes = @notes, updated_at = datetime('now')
-    WHERE id = @id
-  `),
-  remove: db.prepare('DELETE FROM reading_list WHERE id = ?')
-};
+function writeData(rows) {
+  fs.writeFileSync(jsonPath, JSON.stringify(rows, null, 2), 'utf8');
+}
 
 module.exports = {
   list(status) {
-    return status ? stmt.byStatus.all(status) : stmt.all.all();
+    const rows = readData();
+    const filtered = status ? rows.filter(r => r.status === status) : rows;
+    return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at) || b.id - a.id);
   },
+  
   get(id) {
-    return stmt.get.get(id);
+    const rows = readData();
+    return rows.find(r => r.id === id) || null;
   },
+  
   create(data) {
-    const info = stmt.insert.run(data);
-    return stmt.get.get(info.lastInsertRowid);
+    const rows = readData();
+    
+    // Validasi unique google_id (meniru constraint UNIQUE SQLite)
+    if (rows.some(r => r.google_id === data.google_id)) {
+      const err = new Error('Buku ini sudah ada di reading list');
+      err.code = 'SQLITE_CONSTRAINT_UNIQUE';
+      throw err;
+    }
+    
+    const maxId = rows.reduce((max, r) => Math.max(max, r.id || 0), 0);
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    
+    const newRow = {
+      id: maxId + 1,
+      google_id: data.google_id,
+      title: data.title,
+      authors: data.authors || '',
+      thumbnail: data.thumbnail || '',
+      status: data.status || 'want',
+      rating: 0,
+      notes: '',
+      created_at: now,
+      updated_at: now
+    };
+    
+    rows.push(newRow);
+    writeData(rows);
+    return newRow;
   },
+  
   update(id, data) {
-    stmt.update.run({ ...data, id });
-    return stmt.get.get(id);
+    const rows = readData();
+    const index = rows.findIndex(r => r.id === id);
+    if (index === -1) return null;
+    
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    rows[index] = {
+      ...rows[index],
+      status: data.status ?? rows[index].status,
+      rating: data.rating !== undefined ? Number(data.rating) : rows[index].rating,
+      notes: data.notes !== undefined ? String(data.notes).trim() : rows[index].notes,
+      updated_at: now
+    };
+    
+    writeData(rows);
+    return rows[index];
   },
+  
   remove(id) {
-    return stmt.remove.run(id).changes > 0;
+    const rows = readData();
+    const index = rows.findIndex(r => r.id === id);
+    if (index === -1) return false;
+    
+    rows.splice(index, 1);
+    writeData(rows);
+    return true;
   }
 };
